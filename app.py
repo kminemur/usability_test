@@ -7,6 +7,7 @@ import threading
 import time
 import webbrowser
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -16,13 +17,14 @@ import psutil
 from automation import Automation
 
 ROOT = Path(__file__).resolve().parent
-STAGES = {'baseline': '開始時', 'tabs': 'タブ追加後', 'tabs5': '資料＋5タブ', 'tabs10': '資料＋10タブ', 'tabs20': '資料＋20タブ', 'tabs30': '資料＋30タブ', 'call': 'Teams通話中', 'camera': 'カメラON', 'share': '画面共有中', 'office': '模擬業務・映像OFF', 'stress': 'ブラウザ高負荷', 'recovery': '回復'}
-FIELDS = ['timestamp', 'elapsed_s', 'stage', 'system_mib', 'total_mib', 'available_mib', 'memory_percent', 'swap_mib', 'cpu_percent', 'browser_rss_mib', 'teams_rss_mib', 'unreadable_processes']
+STAGES = {'baseline': '開始時', 'tabs': 'タブ追加後', 'tabs5': '資料＋5タブ', 'tabs10': '資料＋10タブ', 'tabs20': '資料＋20タブ', 'tabs30': '資料＋30タブ', 'call': 'Teams通話中', 'camera': 'カメラON', 'share': '画面共有中', 'desktop': 'デスクトップ複合負荷', 'pdf': 'PDF検索中', 'office': '模擬業務・映像OFF', 'stress': 'ブラウザ高負荷', 'recovery': '回復'}
+FIELDS = ['timestamp', 'elapsed_s', 'stage', 'system_mib', 'total_mib', 'available_mib', 'memory_percent', 'swap_mib', 'cpu_percent', 'browser_rss_mib', 'teams_rss_mib', 'excel_rss_mib', 'powerpoint_rss_mib', 'pdf_rss_mib', 'unreadable_processes']
 
 
 def sample():
     memory = psutil.virtual_memory()
     browser = teams = skipped = 0
+    native = dict(excel=0, powerpoint=0, pdf=0)
     for process in psutil.process_iter(['name', 'memory_info'], ad_value=None):
         try:
             info = process.info
@@ -31,7 +33,13 @@ def sample():
             if rss is None:
                 skipped += 1
                 continue
-            if 'teams' in name or 'msteams' in name:
+            if name == 'excel.exe':
+                native['excel'] += rss.rss
+            elif name == 'powerpnt.exe':
+                native['powerpoint'] += rss.rss
+            elif name in ('acrobat.exe', 'acrord32.exe', 'sumatrapdf.exe'):
+                native['pdf'] += rss.rss
+            elif 'teams' in name or 'msteams' in name:
                 teams += rss.rss
             elif any(term in name for term in ('chrome', 'chromium', 'msedge', 'microsoft edge', 'firefox', 'safari', 'webkit')):
                 browser += rss.rss
@@ -42,7 +50,7 @@ def sample():
                 available_mib=memory.available/mib, memory_percent=memory.percent,
                 swap_mib=psutil.swap_memory().used/mib, cpu_percent=psutil.cpu_percent(),
                 browser_rss_mib=browser/mib, teams_rss_mib=teams/mib,
-                unreadable_processes=skipped)
+                unreadable_processes=skipped, **{k+'_rss_mib': v/mib for k, v in native.items()})
 
 
 class Monitor:
@@ -87,12 +95,14 @@ class Monitor:
             with self.path.open('a', newline='', encoding='utf-8') as f:
                 csv.DictWriter(f, fieldnames=FIELDS).writerow(row)
             self.history.append(row)
-            stat = self.stats.setdefault(self.stage, {'count': 0, 'sum': 0, 'max': 0, 'browser_sum': 0, 'teams_sum': 0})
+            stat = self.stats.setdefault(self.stage, {'count': 0, 'sum': 0, 'max': 0, 'browser_sum': 0, 'teams_sum': 0, 'excel_sum': 0, 'powerpoint_sum': 0, 'pdf_sum': 0})
             stat['count'] += 1
             stat['sum'] += row['system_mib']
             stat['max'] = max(stat['max'], row['system_mib'])
             stat['browser_sum'] += row['browser_rss_mib']
             stat['teams_sum'] += row['teams_rss_mib']
+            for app in ('excel', 'powerpoint', 'pdf'):
+                stat[app+'_sum'] += row.get(app+'_rss_mib', 0)
 
     def loop(self):
         psutil.cpu_percent()
@@ -115,7 +125,8 @@ class Monitor:
                     average = stat['sum']/stat['count']
                     summary.append(dict(stage=label, count=stat['count'], average=average,
                                         maximum=stat['max'], delta=average-baseline if baseline is not None else None,
-                                        browser=stat['browser_sum']/stat['count'], teams=stat['teams_sum']/stat['count']))
+                                        browser=stat['browser_sum']/stat['count'], teams=stat['teams_sum']/stat['count'],
+                                        **{app: stat[app+'_sum']/stat['count'] for app in ('excel', 'powerpoint', 'pdf')}))
             return dict(automation=dict(self.automation.status), running=self.running, stage=self.stage, latest=self.latest,
                         history=list(self.history), summary=summary, error=self.error,
                         file=str(self.path) if self.path else None)
@@ -160,7 +171,7 @@ def make_handler(monitor, token):
                     raise ValueError('リクエストが不正です。')
                 data = json.loads(self.rfile.read(length))
                 if self.path == '/api/auto':
-                    monitor.automation.start(data.get('preset', 'standard'))
+                    monitor.automation.start(data.get('preset', 'standard'), data.get('desktop'))
                 elif self.path == '/api/start':
                     monitor.start()
                 elif self.path == '/api/stop':
@@ -169,7 +180,7 @@ def make_handler(monitor, token):
                         monitor.running = False
                 elif self.path == '/api/stage':
                     with monitor.lock:
-                        if monitor.automation.status['active'] or not monitor.running or data.get('stage') not in STAGES:
+                        if (monitor.automation.status['active'] and monitor.automation.status.get('preset') != 'desktop') or not monitor.running or data.get('stage') not in STAGES:
                             raise ValueError('測定を開始し、有効な段階を指定してください。')
                         monitor.stage = data['stage']
                 elif self.path == '/api/open':
@@ -179,9 +190,10 @@ def make_handler(monitor, token):
                     for url in urls:
                         if not isinstance(url, str) or urlparse(url).scheme not in ('http', 'https') or not urlparse(url).netloc:
                             raise ValueError('httpまたはhttpsのURLを指定してください。')
-                    for url in urls:
-                        if not webbrowser.open_new_tab(url):
-                            raise ValueError('ブラウザを開けませんでした。URLを手動で開いてください。')
+                    with ThreadPoolExecutor(max_workers=len(urls)) as pool:
+                        opened = list(pool.map(webbrowser.open_new_tab, urls))
+                    if not all(opened):
+                        raise ValueError('ブラウザを開けませんでした。URLを手動で開いてください。')
                 else:
                     return self.send(404, {'error': 'Not found'})
                 self.send(200, {'ok': True})

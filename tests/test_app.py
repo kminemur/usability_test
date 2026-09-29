@@ -91,6 +91,34 @@ if __name__ == '__main__':
     unittest.main()
 
 class AutomationTests(unittest.TestCase):
+    def test_tabs_load_concurrently(self):
+        import asyncio
+        from unittest.mock import AsyncMock, Mock
+
+        async def exercise():
+            started = 0
+            ready = asyncio.Event()
+
+            async def load(html):
+                nonlocal started
+                started += 1
+                if started == 4:
+                    ready.set()
+                await asyncio.wait_for(ready.wait(), timeout=1)
+
+            pages = [Mock(set_content=AsyncMock(side_effect=load),
+                          evaluate=AsyncMock()) for _ in range(4)]
+            context = Mock(new_page=AsyncMock(side_effect=pages[1:]))
+            with tempfile.TemporaryDirectory() as directory:
+                automation = Monitor(Path(directory)).automation
+                with patch.object(automation, 'check'):
+                    result = await automation.open_tabs(
+                        context, pages[0], {'tabs': 4}, 'business.html')
+            self.assertEqual(result, pages)
+            self.assertEqual(started, 4)
+
+        asyncio.run(exercise())
+
     def test_memory_budget_and_invalid_preset(self):
         from automation import plan
         from types import SimpleNamespace
