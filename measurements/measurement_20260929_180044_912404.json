@@ -1,0 +1,33 @@
+{
+  "active": false,
+  "message": "緊急停止しました・取得済みCSVを保存",
+  "config": {
+    "tabs": 2,
+    "mib": 16,
+    "workers": 1,
+    "duty": 20,
+    "seconds": 3,
+    "reserve_mib": 819
+  },
+  "preset": "smoke",
+  "summary": [
+    {
+      "stage": "開始時",
+      "count": 4,
+      "average": 6430.921875,
+      "maximum": 6527.359375,
+      "delta": 0.0,
+      "browser": 737.71484375,
+      "teams": 0.0
+    },
+    {
+      "stage": "タブ追加後",
+      "count": 3,
+      "average": 6434.109375,
+      "maximum": 6488.09375,
+      "delta": 3.1875,
+      "browser": 1021.171875,
+      "teams": 0.0
+    }
+  ]
+}

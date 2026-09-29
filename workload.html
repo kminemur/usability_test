@@ -1,0 +1,10 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>Memory Lab workload</title><style>body{background:#101624;color:#70e0bb;font:20px system-ui;padding:40px}canvas{width:90%;height:220px}button{padding:15px;font:inherit}</style><h1>Memory Lab · 負荷テスト</h1><p id="state">待機中</p><button onclick="stopLoad()">このタブの負荷を停止</button><canvas width="900" height="240"></canvas><script>
+let blocks=[],workers=[],timer,watchdog,frame;const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+function stopLoad(){clearInterval(timer);clearTimeout(watchdog);cancelAnimationFrame(frame);workers.forEach(w=>w.terminate());workers=[];blocks=[];document.querySelector('#state').textContent='負荷停止・メモリ参照解放済み';}
+function startLoad(c){stopLoad();const expires=Date.now()+Math.min(c.duration,90000);let allocated=0;document.querySelector('#state').textContent=`目標 ${c.mib} MiB / CPU Worker ${c.workers}`;
+timer=setInterval(()=>{if(Date.now()>expires){stopLoad();return}if(allocated>=c.mib){clearInterval(timer);return}try{const size=Math.min(8,c.mib-allocated);const block=new Uint8Array(size*1024*1024);for(let n=0;n<block.length;n+=4096)block[n]=123;blocks.push(block);allocated+=size;}catch(e){stopLoad();}},100);
+const source=`onmessage=e=>{const end=Date.now()+e.data.duration;function work(){if(Date.now()>end)return;const until=performance.now()+e.data.duty;let n=1;while(performance.now()<until){n=Math.sin(n)+Math.sqrt(n*n+1)}setTimeout(work,100-e.data.duty)}work()}`;
+const url=URL.createObjectURL(new Blob([source],{type:'application/javascript'}));for(let i=0;i<c.workers;i++){const w=new Worker(url);w.postMessage(c);workers.push(w)}URL.revokeObjectURL(url);
+function draw(){ctx.fillStyle='#101624';ctx.fillRect(0,0,900,240);for(let i=0;i<250;i++){ctx.fillStyle=`hsl(${(i+Date.now()/30)%360} 65% 65%)`;ctx.fillRect((i*37+Date.now()/8)%900,(i*13)%240,8,8)}frame=requestAnimationFrame(draw)}draw();watchdog=setTimeout(stopLoad,Math.min(c.duration,90000));}
+window.addEventListener('pagehide',stopLoad);
+</script></html>

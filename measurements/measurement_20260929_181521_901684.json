@@ -1,0 +1,24 @@
+{
+  "active": false,
+  "message": "緊急停止しました・取得済みCSVを保存",
+  "config": {
+    "tabs": 12,
+    "mib": 46,
+    "workers": 5,
+    "duty": 90,
+    "seconds": 45,
+    "reserve_mib": 819
+  },
+  "preset": "heavy",
+  "summary": [
+    {
+      "stage": "開始時",
+      "count": 36,
+      "average": 6300.723524305556,
+      "maximum": 6478.765625,
+      "delta": 0.0,
+      "browser": 804.4791666666666,
+      "teams": 0.0
+    }
+  ]
+}

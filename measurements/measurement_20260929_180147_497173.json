@@ -1,0 +1,51 @@
+{
+  "active": false,
+  "message": "自動テスト完了・CSV保存済み",
+  "config": {
+    "tabs": 12,
+    "mib": 45,
+    "workers": 5,
+    "duty": 90,
+    "seconds": 45,
+    "reserve_mib": 819
+  },
+  "preset": "heavy",
+  "summary": [
+    {
+      "stage": "開始時",
+      "count": 46,
+      "average": 6489.327445652174,
+      "maximum": 6624.796875,
+      "delta": 0.0,
+      "browser": 833.7286005434783,
+      "teams": 0.0
+    },
+    {
+      "stage": "タブ追加後",
+      "count": 44,
+      "average": 6533.529474431818,
+      "maximum": 6785.859375,
+      "delta": 44.202028779644024,
+      "browser": 2233.310369318182,
+      "teams": 0.0
+    },
+    {
+      "stage": "ブラウザ高負荷",
+      "count": 50,
+      "average": 6557.865,
+      "maximum": 6709.1875,
+      "delta": 68.53755434782579,
+      "browser": 2394.785,
+      "teams": 0.0
+    },
+    {
+      "stage": "回復",
+      "count": 44,
+      "average": 6174.588068181818,
+      "maximum": 6305.734375,
+      "delta": -314.739377470356,
+      "browser": 144.1072443181818,
+      "teams": 0.0
+    }
+  ]
+}

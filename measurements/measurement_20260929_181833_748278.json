@@ -1,0 +1,76 @@
+{
+  "active": false,
+  "message": "自動テスト完了・CSV保存済み",
+  "config": {
+    "tabs": 4,
+    "mib": 1,
+    "workers": 0,
+    "duty": 0,
+    "seconds": 30,
+    "reserve_mib": 819
+  },
+  "preset": "business",
+  "latency": {
+    "office": {
+      "count": 84,
+      "mean_ms": 50.72857142859582,
+      "p95_ms": 64.29999999981374,
+      "max_ms": 73.79999999981374,
+      "video_frames_max": 0
+    },
+    "stress": {
+      "count": 412,
+      "mean_ms": 50.15582524272568,
+      "p95_ms": 69.5,
+      "max_ms": 146.40000000037253,
+      "video_frames_max": 4446
+    }
+  },
+  "summary": [
+    {
+      "stage": "開始時",
+      "count": 31,
+      "average": 6176.7661290322585,
+      "maximum": 6677.625,
+      "delta": 0.0,
+      "browser": 932.5362903225806,
+      "teams": 0.0
+    },
+    {
+      "stage": "タブ追加後",
+      "count": 29,
+      "average": 6404.573275862069,
+      "maximum": 6703.21875,
+      "delta": 227.80714682981034,
+      "browser": 1436.0210129310344,
+      "teams": 0.0
+    },
+    {
+      "stage": "模擬業務・映像OFF",
+      "count": 30,
+      "average": 6670.001041666666,
+      "maximum": 6758.9375,
+      "delta": 493.2349126344079,
+      "browser": 1898.3864583333334,
+      "teams": 0.0
+    },
+    {
+      "stage": "ブラウザ高負荷",
+      "count": 149,
+      "average": 6670.037961409396,
+      "maximum": 6778.328125,
+      "delta": 493.2718323771378,
+      "browser": 2039.2643666107383,
+      "teams": 0.0
+    },
+    {
+      "stage": "回復",
+      "count": 29,
+      "average": 5898.698275862069,
+      "maximum": 5986.765625,
+      "delta": -278.06785317018966,
+      "browser": 125.85075431034483,
+      "teams": 0.0
+    }
+  ]
+}
