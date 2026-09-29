@@ -7,6 +7,28 @@ from app import Monitor, sample
 
 
 class MonitorTests(unittest.TestCase):
+    def test_dashboard_served_as_utf8(self):
+        import threading
+        from http.server import ThreadingHTTPServer
+        from urllib.request import urlopen
+        from app import make_handler
+        with tempfile.TemporaryDirectory() as directory:
+            monitor = Monitor(Path(directory))
+            server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(monitor, 'test-token'))
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                with urlopen(f'http://127.0.0.1:{server.server_port}/', timeout=5) as response:
+                    html = response.read().decode('utf-8')
+                    self.assertEqual(response.status, 200)
+                    self.assertIn('設定・手動操作', html)
+                    self.assertIn('test-token', html)
+                    self.assertNotIn('__TOKEN__', html)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
     def test_stages_export_and_restart(self):
         with tempfile.TemporaryDirectory() as directory:
             m = Monitor(Path(directory))
@@ -38,10 +60,31 @@ class MonitorTests(unittest.TestCase):
 
     def test_live_sample(self):
         row = sample()
+        self.assertGreater(row['total_mib'], 0)
         self.assertGreater(row['system_mib'], 0)
         self.assertGreaterEqual(row['available_mib'], 0)
         self.assertGreaterEqual(row['memory_percent'], 0)
         self.assertLessEqual(row['memory_percent'], 100)
+
+    def test_practical_stages_csv(self):
+        from app import STAGES
+        stages = ['tabs5', 'tabs10', 'tabs20', 'tabs30', 'share']
+        with tempfile.TemporaryDirectory() as directory:
+            monitor = Monitor(Path(directory))
+            monitor.start()
+            with patch('app.sample', return_value=dict(
+                    system_mib=1024, total_mib=8192, browser_rss_mib=100,
+                    teams_rss_mib=0)):
+                for stage in stages:
+                    self.assertIn(stage, STAGES)
+                    monitor.stage = stage
+                    monitor.tick()
+            monitor.running = False
+            with monitor.path.open(encoding='utf-8-sig') as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual([row['stage'] for row in rows], stages)
+            self.assertTrue(all(row['total_mib'] == '8192' for row in rows))
+            self.assertEqual(len(monitor.state()['summary']), len(stages))
 
 
 if __name__ == '__main__':

@@ -1,21 +1,28 @@
 # Memory Lab
 
+## 8GB PCでの実用限界調査
+
+[実施手順](PRACTICAL_TEST.md)に従って、実際のPDF・表計算・5/10/20/30タブ・会議・画面共有を段階的に追加します。「設定・手動操作」から記録段階を切り替え、操作時間は `operation-record.csv` のコピーに記録してください。対象PCへコピーする際は `.venv` を除き、対象PCで以下の手順により仮想環境を作成します。手動測定だけならChromiumの追加セットアップは不要です。
+
+搭載メモリは対象PCで確認してください。画面と測定CSVの `total_mib` はOS認識メモリです。メモリ容量の異なるPCでの結果は8GB実機の限界判定には使用しません。
+
 ブラウザのタブ追加 → Microsoft Teams通話 → カメラON の各段階でメモリを比較する、日本語のローカルPythonアプリです。
 
 ## 起動
 
 Python 3.9以上を使用します。
 
-```sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
+WindowsのPowerShellで、このフォルダーを開いて実行してください。
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
 ```
 
-Windowsでは仮想環境の有効化に `.venv\Scripts\activate` を使ってください。
+仮想環境内のPythonを直接使うため、Activate.ps1の実行や実行ポリシーの変更は不要です。2回目以降は最後の起動コマンドだけ実行します。
 既定ブラウザに http://127.0.0.1:8765 が開きます。終了はターミナルで Ctrl+C。
-ポート変更は `python app.py --port 8766`、自動ブラウザ起動を省略する場合は `--no-browser`、保存先は `--output PATH` で指定できます。
+ポート変更は `.\.venv\Scripts\python.exe app.py --port 8766`、自動ブラウザ起動を省略する場合は `--no-browser`、保存先は `--output PATH` で指定できます。
 
 ## 測定手順
 
@@ -44,17 +51,16 @@ Windowsでは仮想環境の有効化に `.venv\Scripts\activate` を使って�
 
 ## 検証
 
-```sh
-python -m unittest discover -s tests -v
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
 ## 全自動ブラウザ負荷テスト
 
 追加セットアップ（初回のみ）:
 
-```sh
-pip install -r requirements.txt
-python -m playwright install chromium
+```powershell
+.\.venv\Scripts\python.exe -m playwright install chromium
 ```
 
 画面上部の「全自動テストを開始」で、専用Chromiumの起動、開始時測定、複数タブ作成、段階的なメモリ確保とCPU負荷、ブラウザ終了、回復測定、CSV保存まで実行します。テストは外部サイトにアクセスせず、同梱のローカル負荷ページを使います。既存ブラウザのタブやプロファイルは変更しません。

@@ -16,8 +16,8 @@ import psutil
 from automation import Automation
 
 ROOT = Path(__file__).resolve().parent
-STAGES = {'baseline': '開始時', 'tabs': 'タブ追加後', 'call': 'Teams通話中', 'camera': 'カメラON', 'office': '模擬業務・映像OFF', 'stress': 'ブラウザ高負荷', 'recovery': '回復'}
-FIELDS = ['timestamp', 'elapsed_s', 'stage', 'system_mib', 'available_mib', 'memory_percent', 'swap_mib', 'cpu_percent', 'browser_rss_mib', 'teams_rss_mib', 'unreadable_processes']
+STAGES = {'baseline': '開始時', 'tabs': 'タブ追加後', 'tabs5': '資料＋5タブ', 'tabs10': '資料＋10タブ', 'tabs20': '資料＋20タブ', 'tabs30': '資料＋30タブ', 'call': 'Teams通話中', 'camera': 'カメラON', 'share': '画面共有中', 'office': '模擬業務・映像OFF', 'stress': 'ブラウザ高負荷', 'recovery': '回復'}
+FIELDS = ['timestamp', 'elapsed_s', 'stage', 'system_mib', 'total_mib', 'available_mib', 'memory_percent', 'swap_mib', 'cpu_percent', 'browser_rss_mib', 'teams_rss_mib', 'unreadable_processes']
 
 
 def sample():
@@ -38,7 +38,7 @@ def sample():
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             skipped += 1
     mib = 1024 ** 2
-    return dict(system_mib=(memory.total-memory.available)/mib,
+    return dict(total_mib=memory.total/mib, system_mib=(memory.total-memory.available)/mib,
                 available_mib=memory.available/mib, memory_percent=memory.percent,
                 swap_mib=psutil.swap_memory().used/mib, cpu_percent=psutil.cpu_percent(),
                 browser_rss_mib=browser/mib, teams_rss_mib=teams/mib,
@@ -141,7 +141,7 @@ def make_handler(monitor, token):
             if self.headers.get('Host') != '127.0.0.1:' + str(self.server.server_port):
                 return self.send(403, {'error': 'Invalid host'})
             if self.path == '/':
-                return self.send(200, (ROOT/'index.html').read_text().replace('__TOKEN__', token).encode(), 'text/html; charset=utf-8')
+                return self.send(200, (ROOT/'index.html').read_text(encoding='utf-8').replace('__TOKEN__', token).encode(), 'text/html; charset=utf-8')
             if self.path == '/api/state':
                 return self.send(200, monitor.state())
             if self.path == '/api/csv':

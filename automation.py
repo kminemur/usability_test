@@ -97,7 +97,7 @@ class Automation:
                 if self.monitor.path:
                     metadata = self.monitor.path.with_suffix('.json')
                     try:
-                        metadata.write_text(json.dumps(dict(self.status, summary=self.monitor.state()['summary']), ensure_ascii=False, indent=2))
+                        metadata.write_text(json.dumps(dict(self.status, summary=self.monitor.state()['summary']), ensure_ascii=False, indent=2), encoding='utf-8')
                     except OSError as error:
                         self.status['message'] += ' / 設定保存失敗: ' + str(error)
 
@@ -106,7 +106,7 @@ class Automation:
         for _ in range(config['tabs']-1):
             self.check(config)
             pages.append(context.new_page())
-        html = Path(__file__).with_name('workload.html').read_text()
+        html = Path(__file__).with_name('workload.html').read_text(encoding='utf-8')
         for index, tab in enumerate(pages):
             self.check(config)
             tab.set_default_timeout(5000)
@@ -126,7 +126,7 @@ class Automation:
 
     def business(self, context, page, config):
         pages = [page]
-        html = Path(__file__).with_name('business.html').read_text()
+        html = Path(__file__).with_name('business.html').read_text(encoding='utf-8')
         for _ in range(config['tabs']-1):
             self.check(config)
             pages.append(context.new_page())
